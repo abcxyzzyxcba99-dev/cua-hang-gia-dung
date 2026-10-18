@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/includes/db.php';
+require_login('seller');   // chỉ người bán
 
 $id = (int)($_GET['id'] ?? 0);
 $stmt = $pdo->prepare('SELECT * FROM tblProducts WHERE id = :id');
@@ -16,6 +17,7 @@ $data   = $row;          // đổ dữ liệu theo ID vào form
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
     $data = read_post();
     $data['image'] = $row['image'];     // giữ ảnh cũ nếu không chọn ảnh mới
     $errors = validate_product($data);

@@ -68,8 +68,14 @@ require __DIR__ . '/includes/header.php';
         <div class="mt-auto">
           <div class="fw-bold text-danger fs-5"><?= money($p['price']) ?></div>
           <small class="text-muted">Còn <?= (int)$p['quantity'] ?> sản phẩm</small>
-          <?php if ((int)$p['quantity'] > 0): ?>
+
+          <?php if (is_seller()): ?>
+            <a href="edit.php?id=<?= (int)$p['id'] ?>" class="btn btn-warning btn-sm w-100 mt-2">Sửa sản phẩm</a>
+          <?php elseif ((int)$p['quantity'] <= 0): ?>
+            <button class="btn btn-secondary btn-sm w-100 mt-2" disabled>Hết hàng</button>
+          <?php elseif (is_buyer()): ?>
             <form method="post" action="cart.php" class="mt-2">
+              <?= csrf_field() ?>
               <input type="hidden" name="action" value="add">
               <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
               <div class="input-group input-group-sm">
@@ -79,7 +85,7 @@ require __DIR__ . '/includes/header.php';
               </div>
             </form>
           <?php else: ?>
-            <button class="btn btn-secondary btn-sm w-100 mt-2" disabled>Hết hàng</button>
+            <a href="login.php?redirect=shop.php" class="btn btn-outline-primary btn-sm w-100 mt-2">Đăng nhập để mua</a>
           <?php endif; ?>
         </div>
       </div>

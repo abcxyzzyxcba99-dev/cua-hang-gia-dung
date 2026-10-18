@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/includes/db.php';
+require_login('seller');   // chỉ người bán
 
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 $stmt = $pdo->prepare('SELECT * FROM tblProducts WHERE id = :id');
@@ -14,6 +15,7 @@ if (!$row) {
 
 // Bấm nút "Xóa" xác nhận -> POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
     $del = $pdo->prepare('DELETE FROM tblProducts WHERE id = :id');
     $del->execute([':id' => $id]);
     delete_image($row['image']);
@@ -38,6 +40,7 @@ require __DIR__ . '/includes/header.php';
     <p class="text-muted mb-0">Hành động này không thể hoàn tác.</p>
   </div>
   <form method="post" class="card-footer text-end">
+    <?= csrf_field() ?>
     <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
     <a href="index.php" class="btn btn-outline-secondary">Hủy</a>
     <button type="submit" class="btn btn-danger">Xóa</button>

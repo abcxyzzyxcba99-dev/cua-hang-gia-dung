@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/includes/db.php';
+require_login('seller');   // chỉ người bán
 
 $q_name   = trim($_GET['name'] ?? '');
 $q_code   = trim($_GET['product_code'] ?? '');

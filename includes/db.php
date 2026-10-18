@@ -137,3 +137,91 @@ function handle_upload(array &$errors) {
     }
     return $name;
 }
+
+// ================= TÀI KHOẢN & PHÂN QUYỀN =================
+function current_user() { return $_SESSION['user'] ?? null; }
+function is_seller()    { return (current_user()['role'] ?? '') === 'seller'; }
+function is_buyer()     { return (current_user()['role'] ?? '') === 'buyer'; }
+function home_for(array $u): string { return $u['role'] === 'seller' ? 'index.php' : 'shop.php'; }
+
+// Yêu cầu đăng nhập (và đúng vai trò nếu truyền $role). Sai thì chuyển hướng.
+function require_login(?string $role = null): array {
+    $u = current_user();
+    if (!$u) {
+        set_flash('Vui lòng đăng nhập để tiếp tục.', 'warning');
+        header('Location: login.php?redirect=' . urlencode(basename($_SERVER['PHP_SELF'])));
+        exit;
+    }
+    if ($role !== null && $u['role'] !== $role) {
+        set_flash('Bạn không có quyền truy cập trang này.', 'danger');
+        header('Location: ' . home_for($u));
+        exit;
+    }
+    return $u;
+}
+
+// ================= CSRF =================
+function csrf_token(): string {
+    if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    return $_SESSION['csrf'];
+}
+function csrf_field(): string {
+    return '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
+}
+function csrf_check(): void {
+    if (!hash_equals($_SESSION['csrf'] ?? '', (string)($_POST['csrf'] ?? ''))) {
+        http_response_code(419);
+        die('Phiên làm việc không hợp lệ (CSRF). Hãy tải lại trang và thử lại.');
+    }
+}
+
+// ================= GIỎ HÀNG & ĐƠN HÀNG =================
+function fetch_product(PDO $pdo, int $id) {
+    $s = $pdo->prepare('SELECT * FROM tblProducts WHERE id = :id AND status = 1');
+    $s->execute([':id' => $id]);
+    return $s->fetch();
+}
+
+// Trả về số lượng (int) nếu hợp lệ: số nguyên > 0, ngược lại trả về null
+function parse_qty($raw) {
+    $raw = trim((string)$raw);
+    return (ctype_digit($raw) && (int)$raw > 0) ? (int)$raw : null;
+}
+
+// Nạp giỏ hàng từ session: trả về [danh sách sản phẩm kèm qty/subtotal, tổng tiền]
+function load_cart(PDO $pdo): array {
+    $items = []; $total = 0;
+    foreach (($_SESSION['cart'] ?? []) as $id => $qty) {
+        $p = fetch_product($pdo, (int)$id);
+        if (!$p || (int)$p['quantity'] <= 0) { unset($_SESSION['cart'][$id]); continue; }
+        $qty = min((int)$qty, (int)$p['quantity']);
+        if ($qty <= 0) { unset($_SESSION['cart'][$id]); continue; }
+        $_SESSION['cart'][$id] = $qty;
+        $p['qty']      = $qty;
+        $p['subtotal'] = $qty * (float)$p['price'];
+        $total        += $p['subtotal'];
+        $items[]       = $p;
+    }
+    return [$items, $total];
+}
+
+const PAY_METHODS = [
+    'cod'    => 'Thanh toán khi nhận hàng (COD)',
+    'bank'   => 'Chuyển khoản ngân hàng',
+    'wallet' => 'Ví điện tử (mô phỏng)',
+];
+const ORDER_STATUS = [
+    'new'       => ['Mới đặt',   'primary'],
+    'shipping'  => ['Đang giao', 'info'],
+    'done'      => ['Hoàn thành','success'],
+    'cancelled' => ['Đã hủy',    'secondary'],
+];
+function order_badge(string $st): string {
+    $x = ORDER_STATUS[$st] ?? [$st, 'light'];
+    return '<span class="badge text-bg-' . e($x[1]) . '">' . e($x[0]) . '</span>';
+}
+function pay_badge(string $st): string {
+    return $st === 'paid'
+        ? '<span class="badge text-bg-success">Đã thanh toán</span>'
+        : '<span class="badge text-bg-warning">Chưa thanh toán</span>';
+}

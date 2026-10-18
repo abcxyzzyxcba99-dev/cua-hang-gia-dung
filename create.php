@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/includes/db.php';
+require_login('seller');   // chỉ người bán
 
 $data = [
     'product_code' => '', 'name' => '', 'category' => '', 'brand' => '',
@@ -8,6 +9,7 @@ $data = [
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
     $data = read_post() + ['image' => ''];
     $errors = validate_product($data);
 

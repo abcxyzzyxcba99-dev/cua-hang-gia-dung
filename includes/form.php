@@ -6,6 +6,7 @@ function field_err($errors, $k) {
 function is_bad($errors, $k) { return isset($errors[$k]) ? ' is-invalid' : ''; }
 ?>
 <form method="post" enctype="multipart/form-data" novalidate>
+  <?= csrf_field() ?>
   <div class="card shadow-sm">
     <div class="card-body">
       <div class="row g-3">
